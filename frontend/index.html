@@ -1,1 +1,1132 @@
 
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NeuroStudy | Multi-Agent Study System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "inverse-surface":"#f9f9ff","surface-container-lowest":"#000000",
+        "tertiary-dim":"#48e5d0","on-secondary-fixed":"#4f0089",
+        "primary-fixed":"#6e9fff","on-background":"#ecedf6",
+        "outline-variant":"#45484f","secondary-container":"#6f00be",
+        "surface-dim":"#0b0e14","tertiary":"#c6fff3",
+        "primary-container":"#6e9fff","surface-container":"#161a21",
+        "background":"#0b0e14","surface-container-low":"#10131a",
+        "on-surface":"#ecedf6","inverse-on-surface":"#52555c",
+        "secondary-fixed":"#e5c6ff","error-dim":"#d7383b",
+        "on-error-container":"#ffa8a3","secondary-dim":"#9c48ea",
+        "primary-dim":"#699cff","on-tertiary-fixed-variant":"#00695e",
+        "on-primary-fixed-variant":"#002a62","on-surface-variant":"#a9abb3",
+        "surface-tint":"#85adff","on-secondary-fixed-variant":"#7511c3",
+        "surface-variant":"#22262f","on-primary-fixed":"#000000",
+        "on-tertiary-container":"#005e54","surface":"#0b0e14",
+        "error-container":"#9f0519","on-secondary":"#33005b",
+        "outline":"#73757d","surface-container-highest":"#22262f",
+        "tertiary-fixed-dim":"#54eed8","inverse-primary":"#005bc4",
+        "on-primary-container":"#002150","primary-fixed-dim":"#5391ff",
+        "surface-bright":"#282c36","on-primary":"#002c66",
+        "secondary-fixed-dim":"#dbb4ff","secondary":"#c180ff",
+        "primary":"#85adff","surface-container-high":"#1c2028",
+        "tertiary-fixed":"#65fde6","on-tertiary":"#00685c",
+        "tertiary-container":"#65fde6","on-tertiary-fixed":"#004a41",
+        "on-error":"#490006","on-secondary-container":"#e9cdff","error":"#ff716c"
+      },
+      borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},
+      fontFamily:{"headline":["Manrope"],"body":["Inter"],"label":["Inter"]}
+    }
+  }
+}
+</script>
+<style>
+.glass-panel{background:rgba(34,38,47,0.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.loom-track{position:relative;overflow:hidden}
+.loom-pulse{position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(to bottom,transparent,#3B82F6,#C180FF,transparent);animation:loom-flow 3s infinite linear}
+@keyframes loom-flow{0%{transform:translateY(-100%)}100%{transform:translateY(100%)}}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
+#notes-output h1,#notes-output h2{font-family:Manrope,sans-serif;font-weight:700;color:#ecedf6;margin:1.2rem 0 .6rem;letter-spacing:-.3px}
+#notes-output h2{font-size:1.1rem;padding-bottom:.5rem;border-bottom:1px solid rgba(69,72,79,.4)}
+#notes-output h3{font-size:.95rem;font-weight:600;color:#85adff;margin:.9rem 0 .4rem}
+#notes-output p{font-size:.85rem;line-height:1.75;color:#a9abb3;margin:.4rem 0}
+#notes-output ul,#notes-output ol{padding-left:1.2rem;margin:.4rem 0}
+#notes-output li{font-size:.85rem;line-height:1.7;color:#a9abb3;margin:.2rem 0}
+#notes-output strong{color:#ecedf6;font-weight:600}
+#notes-output em{color:#c6fff3}
+#notes-output code{background:#161a21;border:1px solid #45484f;border-radius:4px;padding:1px 6px;font-family:monospace;font-size:.8rem;color:#85adff}
+#notes-output blockquote{border-left:3px solid #85adff;padding:.5rem 1rem;margin:.7rem 0;background:rgba(133,173,255,.06);border-radius:0 6px 6px 0;font-style:italic;color:#73757d;font-size:.85rem}
+
+/* Modal overlay */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-box{background:#161a21;border:1px solid rgba(69,72,79,0.3);border-radius:16px;width:90%;max-width:640px;max-height:80vh;overflow-y:auto;transform:translateY(16px);transition:transform 0.2s;padding:28px}
+.modal-overlay.open .modal-box{transform:translateY(0)}
+
+/* Nav active state */
+.nav-active{color:#3B82F6 !important;background:rgba(59,130,246,0.1) !important}
+
+/* Log entry animation */
+@keyframes fadeSlideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.log-entry{animation:fadeSlideIn 0.25s ease forwards}
+
+/* Blink cursor for logs */
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.blink{animation:blink 1s infinite}
+</style>
+</head>
+
+<body class="bg-background text-on-surface font-body overflow-hidden h-screen flex">
+
+<!-- ══════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════ -->
+
+<!-- Active Agents Modal -->
+<div class="modal-overlay" id="modal-agents" onclick="closeModal('modal-agents')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="font-headline font-extrabold text-lg text-on-surface">Active Agents</h2>
+        <p class="text-xs text-on-surface-variant mt-0.5">Real-time status of all 3 MCP agents in the pipeline</p>
+      </div>
+      <button onclick="closeModal('modal-agents')" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-highest transition-colors">
+        <span class="material-symbols-outlined text-sm text-on-surface-variant">close</span>
+      </button>
+    </div>
+    <div class="space-y-4">
+      <!-- Agent 1 -->
+      <div class="p-4 bg-surface-container rounded-xl border border-outline-variant/20">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-[#3B82F6]/15 flex items-center justify-center">
+              <span class="material-symbols-outlined text-[#3B82F6]">search</span>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-on-surface">Research Agent</p>
+              <p class="text-[10px] text-on-surface-variant">Tavily API + Wikipedia</p>
+            </div>
+          </div>
+          <span id="agent1-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-container-highest text-on-surface-variant">IDLE</span>
+        </div>
+        <p class="text-xs text-on-surface-variant leading-relaxed">Uses <strong class="text-on-surface">function calling</strong> to autonomously decide which tools to use — web search or Wikipedia. The LLM picks, not hardcoded logic. This is the MCP core.</p>
+        <div class="mt-3 flex gap-2">
+          <span class="px-2 py-0.5 bg-[#3B82F6]/10 text-[#3B82F6] text-[10px] font-bold rounded-full">web_search</span>
+          <span class="px-2 py-0.5 bg-[#65fde6]/10 text-[#65fde6] text-[10px] font-bold rounded-full">wikipedia_search</span>
+          <span class="px-2 py-0.5 bg-secondary/10 text-secondary text-[10px] font-bold rounded-full">tool_choice: auto</span>
+        </div>
+      </div>
+      <!-- Agent 2 -->
+      <div class="p-4 bg-surface-container rounded-xl border border-outline-variant/20">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-secondary/15 flex items-center justify-center">
+              <span class="material-symbols-outlined text-secondary">psychology</span>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-on-surface">Synthesis Agent</p>
+              <p class="text-[10px] text-on-surface-variant">Groq · llama-3.1-8b-instant</p>
+            </div>
+          </div>
+          <span id="agent2-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-container-highest text-on-surface-variant">IDLE</span>
+        </div>
+        <p class="text-xs text-on-surface-variant leading-relaxed">Receives raw research data and converts it into clean, structured Markdown study notes. Supports <strong class="text-on-surface">Quick Revision</strong> (concise) and <strong class="text-on-surface">Deep Dive</strong> (comprehensive) modes.</p>
+        <div class="mt-3 flex gap-2">
+          <span class="px-2 py-0.5 bg-secondary/10 text-secondary text-[10px] font-bold rounded-full">markdown output</span>
+          <span class="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded-full">2000 tokens</span>
+        </div>
+      </div>
+      <!-- Agent 3 -->
+      <div class="p-4 bg-surface-container rounded-xl border border-outline-variant/20">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-[#65fde6]/15 flex items-center justify-center">
+              <span class="material-symbols-outlined text-[#65fde6]">analytics</span>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-on-surface">Evaluation Agent</p>
+              <p class="text-[10px] text-on-surface-variant">Groq · JSON structured output</p>
+            </div>
+          </div>
+          <span id="agent3-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-container-highest text-on-surface-variant">IDLE</span>
+        </div>
+        <p class="text-xs text-on-surface-variant leading-relaxed">Reviews study notes, generates exam questions, identifies weak sections, and computes a <strong class="text-on-surface">confidence score</strong> (0–95%) based on source reliability and notes richness.</p>
+        <div class="mt-3 flex gap-2">
+          <span class="px-2 py-0.5 bg-[#65fde6]/10 text-[#65fde6] text-[10px] font-bold rounded-full">JSON output</span>
+          <span class="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded-full">temp: 0.3</span>
+        </div>
+      </div>
+    </div>
+    <!-- Pipeline diagram -->
+    <div class="mt-5 p-4 bg-surface-container-lowest rounded-xl flex items-center justify-center gap-2 flex-wrap">
+      <div class="text-center"><span class="text-[10px] font-bold text-[#3B82F6]">RESEARCH</span><br/><span class="text-[9px] text-on-surface-variant">Tools → Data</span></div>
+      <span class="material-symbols-outlined text-on-surface-variant text-sm">arrow_forward</span>
+      <div class="text-center"><span class="text-[10px] font-bold text-secondary">SYNTHESIS</span><br/><span class="text-[9px] text-on-surface-variant">Data → Notes</span></div>
+      <span class="material-symbols-outlined text-on-surface-variant text-sm">arrow_forward</span>
+      <div class="text-center"><span class="text-[10px] font-bold text-[#65fde6]">EVALUATION</span><br/><span class="text-[9px] text-on-surface-variant">Notes → Score</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Knowledge Base Modal -->
+<div class="modal-overlay" id="modal-knowledge" onclick="closeModal('modal-knowledge')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="font-headline font-extrabold text-lg text-on-surface">Knowledge Base</h2>
+        <p class="text-xs text-on-surface-variant mt-0.5">Topics researched in this session</p>
+      </div>
+      <button onclick="closeModal('modal-knowledge')" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-highest transition-colors">
+        <span class="material-symbols-outlined text-sm text-on-surface-variant">close</span>
+      </button>
+    </div>
+    <div id="kb-empty" class="py-12 text-center">
+      <span class="material-symbols-outlined text-4xl text-on-surface-variant/30">database</span>
+      <p class="text-sm font-bold text-on-surface mt-3">No topics yet</p>
+      <p class="text-xs text-on-surface-variant mt-1">Research a topic to save it here automatically.</p>
+    </div>
+    <div id="kb-list" class="space-y-3 hidden"></div>
+    <div class="mt-5 flex justify-between items-center pt-4 border-t border-outline-variant/10">
+      <span class="text-[10px] text-on-surface-variant"><span id="kb-count">0</span> topics stored this session</span>
+      <button onclick="clearKB()" class="text-[10px] font-bold text-error hover:underline">Clear All</button>
+    </div>
+  </div>
+</div>
+
+<!-- Shared Labs Modal -->
+<div class="modal-overlay" id="modal-labs" onclick="closeModal('modal-labs')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="font-headline font-extrabold text-lg text-on-surface">Shared Labs</h2>
+        <p class="text-xs text-on-surface-variant mt-0.5">Collaborative study sessions</p>
+      </div>
+      <button onclick="closeModal('modal-labs')" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-highest transition-colors">
+        <span class="material-symbols-outlined text-sm text-on-surface-variant">close</span>
+      </button>
+    </div>
+    <div class="space-y-4">
+      <div class="p-4 bg-surface-container rounded-xl border border-outline-variant/20 flex items-start gap-4">
+        <div class="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-primary">group</span>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-on-surface">Study Group Sync</p>
+          <p class="text-xs text-on-surface-variant mt-1 leading-relaxed">Share your generated study notes with classmates in real time. Invite via link.</p>
+          <button class="mt-3 px-4 py-1.5 bg-primary/10 border border-primary/20 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-colors">
+            Create Session Link
+          </button>
+        </div>
+      </div>
+      <div class="p-4 bg-surface-container rounded-xl border border-outline-variant/20 flex items-start gap-4">
+        <div class="w-9 h-9 rounded-full bg-secondary/15 flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-secondary">quiz</span>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-on-surface">Group Quiz Mode</p>
+          <p class="text-xs text-on-surface-variant mt-1 leading-relaxed">Turn exam questions into a live quiz your whole study group can attempt together.</p>
+          <button onclick="alert('Generate a topic first, then come back to start a quiz!')" class="mt-3 px-4 py-1.5 bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold rounded-lg hover:bg-secondary/20 transition-colors">
+            Start Group Quiz
+          </button>
+        </div>
+      </div>
+      <div class="p-4 bg-surface-container rounded-xl border border-outline-variant/20 flex items-start gap-4">
+        <div class="w-9 h-9 rounded-full bg-[#65fde6]/15 flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-[#65fde6]">hub</span>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-on-surface">MCP Agent Network</p>
+          <p class="text-xs text-on-surface-variant mt-1 leading-relaxed">Connect multiple NeuroStudy instances across your team — agents share context automatically via the MCP protocol.</p>
+          <span class="mt-3 inline-block px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold rounded-full">Coming Soon</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Billing Modal -->
+<div class="modal-overlay" id="modal-billing" onclick="closeModal('modal-billing')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="font-headline font-extrabold text-lg text-on-surface">Billing & Usage</h2>
+        <p class="text-xs text-on-surface-variant mt-0.5">API token consumption this session</p>
+      </div>
+      <button onclick="closeModal('modal-billing')" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-highest transition-colors">
+        <span class="material-symbols-outlined text-sm text-on-surface-variant">close</span>
+      </button>
+    </div>
+    <!-- Usage Stats -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <div class="p-4 bg-surface-container rounded-xl border border-outline-variant/20 text-center">
+        <p class="text-2xl font-extrabold font-headline text-primary" id="bill-queries">0</p>
+        <p class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest mt-1">Queries Run</p>
+      </div>
+      <div class="p-4 bg-surface-container rounded-xl border border-outline-variant/20 text-center">
+        <p class="text-2xl font-extrabold font-headline text-secondary" id="bill-tokens">~0</p>
+        <p class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest mt-1">Est. Tokens Used</p>
+      </div>
+    </div>
+    <!-- API Keys Info -->
+    <div class="space-y-3">
+      <div class="p-3 bg-surface-container rounded-xl flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-sm text-primary">vpn_key</span>
+          <span class="text-xs font-bold text-on-surface">Groq API</span>
+        </div>
+        <span class="text-[10px] font-bold text-[#65fde6] bg-[#65fde6]/10 px-2 py-0.5 rounded-full">FREE TIER</span>
+      </div>
+      <div class="p-3 bg-surface-container rounded-xl flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-sm text-secondary">travel_explore</span>
+          <span class="text-xs font-bold text-on-surface">Tavily Search API</span>
+        </div>
+        <span class="text-[10px] font-bold text-[#65fde6] bg-[#65fde6]/10 px-2 py-0.5 rounded-full">FREE TIER</span>
+      </div>
+      <div class="p-3 bg-surface-container rounded-xl flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-sm text-[#65fde6]">menu_book</span>
+          <span class="text-xs font-bold text-on-surface">Wikipedia API</span>
+        </div>
+        <span class="text-[10px] font-bold text-[#65fde6] bg-[#65fde6]/10 px-2 py-0.5 rounded-full">COMPLETELY FREE</span>
+      </div>
+    </div>
+    <p class="text-[10px] text-on-surface-variant text-center mt-5">This project uses free-tier APIs — zero cost for hackathon use 🎉</p>
+  </div>
+</div>
+
+<!-- Support Modal -->
+<div class="modal-overlay" id="modal-support" onclick="closeModal('modal-support')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="font-headline font-extrabold text-lg text-on-surface">Support & Docs</h2>
+        <p class="text-xs text-on-surface-variant mt-0.5">Help for running NeuroStudy</p>
+      </div>
+      <button onclick="closeModal('modal-support')" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-highest transition-colors">
+        <span class="material-symbols-outlined text-sm text-on-surface-variant">close</span>
+      </button>
+    </div>
+    <div class="space-y-4">
+      <!-- Quick Start -->
+      <div class="p-4 bg-surface-container rounded-xl border border-outline-variant/20">
+        <p class="text-sm font-bold text-on-surface mb-3">🚀 Quick Start</p>
+        <div class="space-y-2">
+          <div class="flex items-start gap-2">
+            <span class="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+            <p class="text-xs text-on-surface-variant">Install dependencies: <code class="text-primary bg-surface-container-lowest px-1 py-0.5 rounded text-[10px]">pip install -r requirements.txt</code></p>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+            <p class="text-xs text-on-surface-variant">Set your API keys in <code class="text-primary bg-surface-container-lowest px-1 py-0.5 rounded text-[10px]">agent.py</code> and <code class="text-primary bg-surface-container-lowest px-1 py-0.5 rounded text-[10px]">tools.py</code></p>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+            <p class="text-xs text-on-surface-variant">Start backend: <code class="text-primary bg-surface-container-lowest px-1 py-0.5 rounded text-[10px]">python main.py</code></p>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
+            <p class="text-xs text-on-surface-variant">Open <code class="text-primary bg-surface-container-lowest px-1 py-0.5 rounded text-[10px]">index.html</code> in browser and start researching!</p>
+          </div>
+        </div>
+      </div>
+      <!-- MCP Explanation -->
+      <div class="p-4 bg-[#3B82F6]/5 border border-[#3B82F6]/20 rounded-xl">
+        <p class="text-sm font-bold text-[#3B82F6] mb-2">💡 What to say to judges about MCP</p>
+        <p class="text-xs text-on-surface-variant leading-relaxed italic">"Our system implements the Model Context Protocol pattern — instead of hardcoding which tools to call, we register tool schemas with the LLM and let it autonomously decide at runtime which tool to invoke based on context. The LLM acts as the orchestrator, not us."</p>
+      </div>
+      <!-- FAQ -->
+      <div class="p-4 bg-surface-container rounded-xl border border-outline-variant/20 space-y-3">
+        <p class="text-sm font-bold text-on-surface">FAQ</p>
+        <div>
+          <p class="text-xs font-bold text-on-surface">Backend not connecting?</p>
+          <p class="text-xs text-on-surface-variant mt-0.5">Make sure <code class="text-primary text-[10px]">python main.py</code> is running and update <code class="text-primary text-[10px]">API_BASE</code> in this file to your server URL.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-on-surface">Slow responses?</p>
+          <p class="text-xs text-on-surface-variant mt-0.5">Switch to Quick Revision mode — it uses fewer tokens and runs faster for demos.</p>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-on-surface">Deploying to Render?</p>
+          <p class="text-xs text-on-surface-variant mt-0.5">Set <code class="text-primary text-[10px]">API_BASE</code> to your Render URL (e.g. <code class="text-primary text-[10px]">https://your-app.onrender.com</code>).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Logs Modal -->
+<div class="modal-overlay" id="modal-logs" onclick="closeModal('modal-logs')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="font-headline font-extrabold text-lg text-on-surface">System Logs</h2>
+        <p class="text-xs text-on-surface-variant mt-0.5">All agent activity this session</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="clearLogs()" class="text-[10px] font-bold text-error hover:underline">Clear</button>
+        <button onclick="closeModal('modal-logs')" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-highest transition-colors">
+          <span class="material-symbols-outlined text-sm text-on-surface-variant">close</span>
+        </button>
+      </div>
+    </div>
+    <div id="logs-empty" class="py-12 text-center">
+      <span class="material-symbols-outlined text-4xl text-on-surface-variant/30">terminal</span>
+      <p class="text-sm font-bold text-on-surface mt-3">No logs yet</p>
+      <p class="text-xs text-on-surface-variant mt-1">Run a research session to see activity here.</p>
+    </div>
+    <div id="logs-container" class="hidden font-mono text-[11px] bg-surface-container-lowest rounded-xl p-4 max-h-96 overflow-y-auto space-y-1"></div>
+  </div>
+</div>
+
+<!-- Export JSON Modal -->
+<div class="modal-overlay" id="modal-json" onclick="closeModal('modal-json')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="font-headline font-extrabold text-lg text-on-surface">Export JSON</h2>
+        <p class="text-xs text-on-surface-variant mt-0.5">Full structured output from the last research run</p>
+      </div>
+      <button onclick="closeModal('modal-json')" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-highest transition-colors">
+        <span class="material-symbols-outlined text-sm text-on-surface-variant">close</span>
+      </button>
+    </div>
+    <div id="json-empty" class="py-12 text-center">
+      <span class="material-symbols-outlined text-4xl text-on-surface-variant/30">data_object</span>
+      <p class="text-sm font-bold text-on-surface mt-3">No data yet</p>
+      <p class="text-xs text-on-surface-variant mt-1">Run a research session first.</p>
+    </div>
+    <div id="json-content" class="hidden">
+      <div class="bg-surface-container-lowest rounded-xl p-4 max-h-72 overflow-y-auto">
+        <pre id="json-preview" class="text-[10px] text-[#65fde6] font-mono whitespace-pre-wrap break-all leading-relaxed"></pre>
+      </div>
+      <div class="flex gap-3 mt-4">
+        <button onclick="downloadJSON()" class="flex-1 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary text-xs font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-sm">download</span> Download .json
+        </button>
+        <button onclick="copyJSON()" class="px-5 py-2.5 border border-outline-variant/30 text-on-surface text-xs font-bold rounded-xl hover:bg-surface-container transition-all flex items-center gap-2">
+          <span class="material-symbols-outlined text-sm">content_copy</span> Copy
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ SIDEBAR ══ -->
+<aside class="hidden md:flex flex-col h-full w-64 bg-[#10131A] p-4 space-y-4 border-r border-outline-variant/15">
+  <div class="px-2 py-4">
+    <h2 class="font-headline font-extrabold text-xl tracking-tighter text-[#85ADFF]">NeuroStudy</h2>
+    <p class="text-[10px] uppercase tracking-widest text-on-surface-variant/60 font-bold">MCP Agent v1.0</p>
+  </div>
+  <nav class="flex-1 space-y-1" id="sidebar-nav">
+    <button onclick="navTo('dashboard')" id="nav-dashboard" class="nav-active w-full flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-xs transition-all hover:translate-x-1 duration-300">
+      <span class="material-symbols-outlined text-lg">dashboard</span> Dashboard
+    </button>
+    <button onclick="openModal('modal-agents')" id="nav-agents" class="w-full flex items-center gap-3 px-3 py-2 text-[#ECEDF6]/40 font-medium text-xs transition-all hover:bg-[#22262F] hover:text-[#ECEDF6] hover:translate-x-1 duration-300 rounded-lg">
+      <span class="material-symbols-outlined text-lg">psychology</span> Active Agents
+      <span id="agents-live-dot" class="ml-auto w-1.5 h-1.5 rounded-full bg-on-surface-variant/20"></span>
+    </button>
+    <button onclick="openModal('modal-knowledge')" id="nav-knowledge" class="w-full flex items-center gap-3 px-3 py-2 text-[#ECEDF6]/40 font-medium text-xs transition-all hover:bg-[#22262F] hover:text-[#ECEDF6] hover:translate-x-1 duration-300 rounded-lg">
+      <span class="material-symbols-outlined text-lg">database</span> Knowledge Base
+      <span id="kb-badge" class="ml-auto hidden px-1.5 py-0.5 bg-primary/20 text-primary text-[9px] font-bold rounded-full">0</span>
+    </button>
+    <button onclick="openModal('modal-labs')" id="nav-labs" class="w-full flex items-center gap-3 px-3 py-2 text-[#ECEDF6]/40 font-medium text-xs transition-all hover:bg-[#22262F] hover:text-[#ECEDF6] hover:translate-x-1 duration-300 rounded-lg">
+      <span class="material-symbols-outlined text-lg">hub</span> Shared Labs
+    </button>
+    <button onclick="openModal('modal-billing')" id="nav-billing" class="w-full flex items-center gap-3 px-3 py-2 text-[#ECEDF6]/40 font-medium text-xs transition-all hover:bg-[#22262F] hover:text-[#ECEDF6] hover:translate-x-1 duration-300 rounded-lg">
+      <span class="material-symbols-outlined text-lg">payments</span> Billing
+    </button>
+  </nav>
+  <button onclick="newSession()" class="w-full py-2.5 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-xs rounded-lg shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all">
+    New Research Session
+  </button>
+  <div class="pt-4 border-t border-outline-variant/15 space-y-1">
+    <button onclick="openModal('modal-support')" class="w-full flex items-center gap-3 px-3 py-2 text-[#ECEDF6]/40 font-medium text-xs hover:text-[#ECEDF6] transition-colors rounded-lg hover:bg-[#22262F]">
+      <span class="material-symbols-outlined text-lg">help</span> Support
+    </button>
+    <button onclick="openModal('modal-logs')" class="w-full flex items-center gap-3 px-3 py-2 text-[#ECEDF6]/40 font-medium text-xs hover:text-[#ECEDF6] transition-colors rounded-lg hover:bg-[#22262F]">
+      <span class="material-symbols-outlined text-lg">terminal</span> Logs
+      <span id="logs-count-badge" class="ml-auto hidden px-1.5 py-0.5 bg-secondary/20 text-secondary text-[9px] font-bold rounded-full">0</span>
+    </button>
+  </div>
+</aside>
+
+<!-- ══ MAIN AREA ══ -->
+<div class="flex-1 flex flex-col min-w-0 bg-background">
+
+  <!-- Top Nav -->
+  <header class="flex justify-between items-center w-full px-6 py-3 bg-[#10131A]/60 backdrop-blur-xl border-b border-outline-variant/10 z-50">
+    <div class="flex items-center gap-8">
+      <div class="flex items-center gap-2">
+        <span id="live-dot" class="w-2 h-2 rounded-full bg-on-surface-variant/30"></span>
+        <span class="text-[10px] uppercase font-bold text-on-surface-variant/50 tracking-widest" id="agent-status">Idle</span>
+      </div>
+      <div class="hidden sm:flex items-center gap-1 bg-surface-container rounded-lg p-1">
+        <button id="btn-quick" onclick="setMode('quick')" class="px-3 py-1 text-[10px] font-bold rounded-md bg-primary/20 text-primary transition-all">⚡ Quick Revision</button>
+        <button id="btn-deep" onclick="setMode('deep')" class="px-3 py-1 text-[10px] font-bold rounded-md text-on-surface-variant hover:text-on-surface transition-all">🔬 Deep Dive</button>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <button onclick="regenerate()" id="regen-btn" class="hidden px-4 py-1.5 text-xs font-bold text-on-surface border border-outline-variant/30 rounded-lg hover:bg-surface-container transition-all">
+        ↻ Regen Weak Sections
+      </button>
+      <div class="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-[10px] font-bold text-on-primary">K</div>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <main class="flex-1 flex overflow-hidden">
+
+    <!-- ══ LEFT: Study Notes ══ -->
+    <section class="flex-1 flex flex-col overflow-hidden border-r border-outline-variant/10">
+
+      <!-- Input Bar -->
+      <div class="p-6 border-b border-outline-variant/10 bg-surface-container-low/40">
+        <p class="text-[10px] uppercase font-bold text-on-surface-variant/60 tracking-widest mb-3">Research Query</p>
+        <div class="flex gap-3">
+          <div class="flex-1 flex items-center gap-3 px-4 py-2.5 bg-surface-container rounded-xl border border-outline-variant/20 focus-within:border-primary/50 transition-colors">
+            <span class="material-symbols-outlined text-on-surface-variant text-lg">search</span>
+            <input id="topic-input" type="text"
+              placeholder="Enter a topic e.g. Photosynthesis, Newton's Laws..."
+              class="flex-1 bg-transparent text-sm text-on-surface placeholder-on-surface-variant/40 outline-none font-body"
+              onkeydown="if(event.key==='Enter') generate()"/>
+          </div>
+          <button id="gen-btn" onclick="generate()"
+            class="px-5 py-2.5 bg-gradient-to-r from-primary to-primary-container text-on-primary text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">rocket_launch</span>
+            Generate
+          </button>
+        </div>
+        <!-- Loading bar -->
+        <div id="loading-bar" class="hidden mt-3 h-0.5 bg-surface-container-highest rounded-full overflow-hidden">
+          <div class="h-full bg-gradient-to-r from-primary via-secondary to-primary bg-[length:200%] animate-[shimmer_1.5s_linear_infinite] rounded-full w-2/3"></div>
+        </div>
+        <div id="error-box" class="hidden mt-3 p-3 bg-error-container/20 border border-error/20 rounded-lg text-xs text-error"></div>
+      </div>
+
+      <!-- Notes Output -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-6">
+
+        <!-- Empty State -->
+        <div id="empty-state" class="h-full flex flex-col items-center justify-center gap-4 text-center py-20">
+          <div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <span class="material-symbols-outlined text-3xl text-primary">neurology</span>
+          </div>
+          <div>
+            <p class="font-headline font-bold text-on-surface text-base">Ready to Research</p>
+            <p class="text-xs text-on-surface-variant mt-1 max-w-xs leading-relaxed">Enter any topic above. Three AI agents will autonomously gather, synthesize, and evaluate your study material.</p>
+          </div>
+          <div class="flex gap-2 flex-wrap justify-center mt-2">
+            <span onclick="quickFill('Photosynthesis')" class="px-3 py-1 bg-surface-container rounded-full text-[10px] text-on-surface-variant border border-outline-variant/20 cursor-pointer hover:border-primary/30 hover:text-primary transition-colors">Photosynthesis</span>
+            <span onclick="quickFill('Newton\'s Laws')" class="px-3 py-1 bg-surface-container rounded-full text-[10px] text-on-surface-variant border border-outline-variant/20 cursor-pointer hover:border-primary/30 hover:text-primary transition-colors">Newton's Laws</span>
+            <span onclick="quickFill('Machine Learning')" class="px-3 py-1 bg-surface-container rounded-full text-[10px] text-on-surface-variant border border-outline-variant/20 cursor-pointer hover:border-primary/30 hover:text-primary transition-colors">Machine Learning</span>
+            <span onclick="quickFill('DNA Replication')" class="px-3 py-1 bg-surface-container rounded-full text-[10px] text-on-surface-variant border border-outline-variant/20 cursor-pointer hover:border-primary/30 hover:text-primary transition-colors">DNA Replication</span>
+          </div>
+        </div>
+
+        <!-- Notes Content -->
+        <div id="notes-area" class="hidden space-y-5">
+
+          <!-- Key Concepts -->
+          <div id="concepts-block" class="hidden">
+            <p class="text-[10px] uppercase font-bold text-on-surface-variant/60 tracking-widest mb-3">💡 Key Concepts</p>
+            <div id="concepts-wrap" class="flex flex-wrap gap-2"></div>
+          </div>
+
+          <!-- Important Topics -->
+          <div id="topics-block" class="hidden">
+            <p class="text-[10px] uppercase font-bold text-on-surface-variant/60 tracking-widest mb-3">🔥 Must-Know Exam Topics</p>
+            <div id="topics-wrap" class="flex flex-wrap gap-2"></div>
+          </div>
+
+          <!-- Notes -->
+          <div class="p-5 bg-surface-container rounded-xl border border-outline-variant/10">
+            <div id="notes-output"></div>
+          </div>
+
+          <!-- Exam Questions -->
+          <div id="questions-block" class="hidden">
+            <h3 class="text-[10px] uppercase font-bold text-on-surface-variant/60 tracking-widest mb-3">📝 Likely Exam Questions</h3>
+            <div class="space-y-3" id="questions-list"></div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ RIGHT: Live Reasoning ══ -->
+    <aside class="w-[340px] flex-shrink-0 bg-surface-container-low flex flex-col overflow-hidden">
+
+      <!-- Reasoning Header -->
+      <div class="p-5 border-b border-outline-variant/10 flex justify-between items-center">
+        <div class="space-y-0.5">
+          <h2 class="font-headline font-extrabold text-on-surface tracking-tight">Live AI Reasoning</h2>
+          <div class="flex items-center gap-2">
+            <span id="live-dot-right" class="w-2 h-2 rounded-full bg-on-surface-variant/30"></span>
+            <span id="live-label" class="text-[10px] uppercase font-bold text-on-surface-variant/50 tracking-widest">Standby</span>
+          </div>
+        </div>
+        <span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface transition-colors" onclick="openModal('modal-agents')">more_vert</span>
+      </div>
+
+      <!-- Step List with Loom -->
+      <div class="flex-1 p-5 overflow-y-auto relative">
+        <div class="absolute left-[39px] top-6 bottom-6 w-px bg-surface-container-highest loom-track" id="loom-line">
+          <div class="loom-pulse hidden" id="loom-pulse"></div>
+        </div>
+        <div class="space-y-6 relative z-10" id="steps-list">
+          <div class="flex gap-4 items-start opacity-40">
+            <div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant ring-4 ring-background flex-shrink-0">
+              <span class="material-symbols-outlined text-sm">hourglass_empty</span>
+            </div>
+            <div class="pt-1">
+              <p class="text-xs font-bold text-on-surface">Waiting for input</p>
+              <p class="text-[10px] text-on-surface-variant">Enter a topic to begin</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sources Panel -->
+      <div id="sources-panel" class="hidden mx-4 mb-4 p-4 rounded-xl bg-surface-container-highest/30 border border-outline-variant/10">
+        <p class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest mb-2">Sources Used</p>
+        <div id="sources-list" class="flex flex-wrap gap-2"></div>
+      </div>
+
+      <!-- Agent Load Bar -->
+      <div class="mx-4 mb-4 p-4 rounded-xl bg-surface-container-highest/30 border border-outline-variant/10">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase">Agent Load</span>
+          <span class="text-xs font-bold text-secondary" id="agent-load-num">0%</span>
+        </div>
+        <div class="w-full h-1 bg-surface-container-lowest rounded-full overflow-hidden">
+          <div class="h-full bg-secondary rounded-full transition-all duration-700" id="agent-load-bar" style="width:0%"></div>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- ══ FOOTER ══ -->
+  <footer class="h-20 bg-surface-container-lowest border-t border-outline-variant/15 px-8 flex items-center justify-between flex-shrink-0">
+    <div class="flex items-center gap-10">
+      <!-- Confidence Gauge -->
+      <div class="flex items-center gap-4">
+        <div class="relative w-12 h-12 flex items-center justify-center">
+          <svg class="w-full h-full -rotate-90" viewBox="0 0 48 48">
+            <circle class="text-surface-container-highest" cx="24" cy="24" fill="transparent" r="20" stroke="currentColor" stroke-width="4"/>
+            <circle id="conf-circle" class="text-primary transition-all duration-1000" cx="24" cy="24" fill="transparent" r="20"
+              stroke="currentColor" stroke-dasharray="125.6" stroke-dashoffset="125.6" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+          <span class="absolute text-[10px] font-bold text-on-surface" id="conf-num">0%</span>
+        </div>
+        <div>
+          <p class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest">Confidence</p>
+          <p class="text-xs font-bold text-on-surface" id="conf-label">—</p>
+        </div>
+      </div>
+
+      <!-- Source Links -->
+      <div class="hidden lg:flex items-center gap-4">
+        <p class="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest">Sources</p>
+        <div class="flex gap-2" id="source-links">
+          <span class="text-[10px] text-on-surface-variant/40">None yet</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button onclick="openModal('modal-json')" class="px-5 py-2 text-xs font-bold text-on-surface border border-outline-variant/30 rounded-lg hover:bg-surface-container transition-all flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">data_object</span> Export JSON
+      </button>
+      <button onclick="regenerate()" class="px-5 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary text-xs font-bold rounded-lg shadow-lg hover:brightness-110 active:scale-95 transition-all">
+        Regenerate Weak Sections
+      </button>
+    </div>
+  </footer>
+
+</div><!-- /main area -->
+</body>
+
+<script>
+// ══ Config ══
+const API_BASE = "http://localhost:8000";
+let currentMode = "quick";
+let currentTopic = "";
+let lastData = null;
+let sessionLogs = [];
+let knowledgeBase = [];
+let queryCount = 0;
+
+// ══ Modal System ══
+function openModal(id) {
+  document.getElementById(id).classList.add("open");
+  // Refresh billing stats when opened
+  if (id === "modal-billing") {
+    document.getElementById("bill-queries").textContent = queryCount;
+    document.getElementById("bill-tokens").textContent = "~" + (queryCount * 4200).toLocaleString();
+  }
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove("open");
+}
+// Close on Escape key
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".modal-overlay.open").forEach(m => m.classList.remove("open"));
+  }
+});
+
+// ══ Sidebar nav active state ══
+function navTo(page) {
+  document.querySelectorAll("#sidebar-nav button").forEach(b => {
+    b.className = b.className.replace("nav-active", "").trim();
+    if (!b.className.includes("text-[#ECEDF6]")) {
+      b.className += " text-[#ECEDF6]/40";
+    }
+  });
+  const btn = document.getElementById("nav-" + page);
+  if (btn) btn.classList.add("nav-active");
+}
+
+// ══ Quick fill topic chips ══
+function quickFill(topic) {
+  document.getElementById("topic-input").value = topic;
+  document.getElementById("topic-input").focus();
+}
+
+// ══ New Session ══
+function newSession() {
+  document.getElementById("topic-input").value = "";
+  clearAll();
+  clearSteps();
+  document.getElementById("topic-input").focus();
+  navTo("dashboard");
+}
+
+// ══ Mode toggle ══
+function setMode(m) {
+  currentMode = m;
+  const qb = document.getElementById("btn-quick");
+  const db = document.getElementById("btn-deep");
+  if (m === "quick") {
+    qb.className = "px-3 py-1 text-[10px] font-bold rounded-md bg-primary/20 text-primary transition-all";
+    db.className = "px-3 py-1 text-[10px] font-bold rounded-md text-on-surface-variant hover:text-on-surface transition-all";
+  } else {
+    db.className = "px-3 py-1 text-[10px] font-bold rounded-md bg-secondary/20 text-secondary transition-all";
+    qb.className = "px-3 py-1 text-[10px] font-bold rounded-md text-on-surface-variant hover:text-on-surface transition-all";
+  }
+}
+
+async function generate() {
+  const t = document.getElementById("topic-input").value.trim();
+  if (!t) return;
+  currentTopic = t;
+  await run(t, currentMode, "/study");
+}
+
+async function regenerate() {
+  if (!currentTopic) return;
+  await run(currentTopic, "deep", "/regenerate");
+}
+
+async function run(topic, mode, endpoint) {
+  setLoading(true);
+  clearAll();
+  setAgentStatus("Processing", true);
+  setAgentLoad(20);
+  setAgentBadges("RUNNING", "WAITING", "WAITING");
+  addLog(`[START] Topic: "${topic}" | Mode: ${mode}`);
+
+  try {
+    setAgentLoad(40);
+    addLog(`[AGENT 1] Research Agent activated → calling tools...`);
+    setAgentBadges("ACTIVE", "WAITING", "WAITING");
+
+    const res = await fetch(API_BASE + endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topic, mode }),
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.detail || "Server error"); }
+    const data = await res.json();
+
+    setAgentLoad(80);
+    addLog(`[AGENT 2] Synthesis Agent → generating study notes...`);
+    setAgentBadges("DONE", "DONE", "ACTIVE");
+
+    lastData = data;
+    queryCount++;
+    renderAll(data);
+
+    setAgentLoad(100);
+    setAgentStatus("Complete", false);
+    setAgentBadges("IDLE", "IDLE", "IDLE");
+    addLog(`[DONE] Pipeline complete. Confidence: ${data.confidence_score || "N/A"}%`);
+
+    // Save to knowledge base
+    saveToKB(topic, mode, data);
+
+  } catch(err) {
+    showError("Cannot reach backend. Make sure 'python main.py' is running.\n" + err.message);
+    setAgentStatus("Error", false);
+    setAgentLoad(0);
+    setAgentBadges("ERROR", "IDLE", "IDLE");
+    addLog(`[ERROR] ${err.message}`);
+  } finally {
+    setLoading(false);
+    document.getElementById("regen-btn").classList.remove("hidden");
+  }
+}
+
+function renderAll(data) {
+  // ── Reasoning steps ──
+  clearSteps();
+  const stepDefs = [
+    { icon: "search",      label: "Searching web",          sub: "Querying Tavily API" },
+    { icon: "menu_book",   label: "Fetching Wikipedia",     sub: "Retrieving factual summary" },
+    { icon: "psychology",  label: "Synthesizing knowledge", sub: "Building structured notes" },
+    { icon: "analytics",   label: "Evaluating confidence",  sub: "Scoring source reliability" },
+    { icon: "verified",    label: "Final output ready",     sub: "Pipeline complete" },
+  ];
+
+  const steps = data.reasoning_steps || [];
+  const list = document.getElementById("steps-list");
+  list.innerHTML = "";
+
+  steps.forEach((stepText, i) => {
+    const def = stepDefs[Math.min(i, stepDefs.length - 1)];
+    const isLast = i === steps.length - 1;
+    const isDone = !isLast;
+
+    const div = document.createElement("div");
+    div.className = "flex gap-4 items-start " + (isDone ? "opacity-60" : "");
+    div.innerHTML = isDone
+      ? `<div class="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center text-primary-container ring-4 ring-background flex-shrink-0">
+           <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1;">check_circle</span>
+         </div>`
+      : `<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary ring-4 ring-primary/20 shadow-[0_0_15px_rgba(133,173,255,0.4)] flex-shrink-0">
+           <span class="material-symbols-outlined text-sm">${def.icon}</span>
+         </div>`;
+
+    div.innerHTML += `<div class="pt-1">
+      <p class="text-xs font-bold ${isLast ? 'text-primary' : 'text-on-surface'}">${stepText}</p>
+    </div>`;
+
+    list.appendChild(div);
+
+    div.style.opacity = "0";
+    div.style.transform = "translateX(10px)";
+    setTimeout(() => {
+      div.style.transition = "all 0.3s ease";
+      div.style.opacity = isDone ? "0.6" : "1";
+      div.style.transform = "translateX(0)";
+    }, i * 120);
+  });
+
+  document.getElementById("empty-state").classList.add("hidden");
+  document.getElementById("notes-area").classList.remove("hidden");
+
+  if (data.study_notes) {
+    document.getElementById("notes-output").innerHTML = marked.parse(data.study_notes);
+  }
+
+  if (data.key_concepts?.length) {
+    document.getElementById("concepts-block").classList.remove("hidden");
+    document.getElementById("concepts-wrap").innerHTML = data.key_concepts.map(c =>
+      `<span class="px-3 py-1 bg-primary/10 border border-primary/20 text-primary rounded-full text-[11px] font-bold">${c}</span>`
+    ).join("");
+  }
+
+  if (data.important_topics?.length) {
+    document.getElementById("topics-block").classList.remove("hidden");
+    document.getElementById("topics-wrap").innerHTML = data.important_topics.map(t =>
+      `<span class="px-3 py-1 bg-secondary/10 border border-secondary/20 text-secondary rounded-full text-[11px] font-bold">🔥 ${t}</span>`
+    ).join("");
+  }
+
+  if (data.exam_questions?.length) {
+    document.getElementById("questions-block").classList.remove("hidden");
+    document.getElementById("questions-list").innerHTML = data.exam_questions.map((q, i) =>
+      `<div class="p-4 bg-surface-container-lowest rounded-xl border-l-4 ${i % 2 === 0 ? 'border-primary' : 'border-secondary'}">
+        <p class="text-sm font-bold text-on-surface">${q}</p>
+       </div>`
+    ).join("");
+  }
+
+  if (data.confidence_score !== undefined) {
+    const s = data.confidence_score;
+    document.getElementById("conf-num").textContent = s + "%";
+    document.getElementById("conf-label").textContent =
+      s >= 75 ? "High Reliability" : s >= 50 ? "Moderate" : "Verify Sources";
+    setTimeout(() => {
+      document.getElementById("conf-circle").style.strokeDashoffset = (125.6 * (1 - s / 100)).toFixed(1);
+    }, 300);
+  }
+
+  if (data.sources?.length) {
+    document.getElementById("sources-panel").classList.remove("hidden");
+    document.getElementById("sources-list").innerHTML = data.sources.map(s => {
+      const icon = s.source === "wikipedia" ? "menu_book" : "travel_explore";
+      const name = s.source === "wikipedia" ? "Wikipedia" : "Web";
+      const color = s.reliability === "high" ? "text-[#65fde6]" : s.reliability === "medium" ? "text-primary" : "text-error";
+      return `<div class="flex items-center gap-1.5 px-2 py-1 bg-surface-container rounded-md text-[10px] font-bold text-on-surface">
+        <span class="material-symbols-outlined text-xs ${color}">${icon}</span> ${name}
+      </div>`;
+    }).join("");
+
+    document.getElementById("source-links").innerHTML = data.sources.map(s => {
+      const name = s.source === "wikipedia" ? "Wikipedia" : "Web Search";
+      const url = s.url || "#";
+      return `<a href="${url}" target="_blank" class="flex items-center gap-1.5 px-3 py-1 bg-surface-container rounded-md text-[10px] font-bold text-on-surface hover:bg-surface-container-highest transition-colors cursor-pointer">
+        <span class="material-symbols-outlined text-xs">link</span> ${name}
+      </a>`;
+    }).join("");
+  }
+}
+
+// ══ Knowledge Base ══
+function saveToKB(topic, mode, data) {
+  const entry = {
+    topic,
+    mode,
+    timestamp: new Date().toLocaleTimeString(),
+    confidence: data.confidence_score,
+    concepts: data.key_concepts || [],
+    data,
+  };
+  knowledgeBase.unshift(entry);
+
+  // Update badge
+  const badge = document.getElementById("kb-badge");
+  badge.textContent = knowledgeBase.length;
+  badge.classList.remove("hidden");
+  document.getElementById("kb-count").textContent = knowledgeBase.length;
+
+  // Re-render KB list
+  renderKB();
+}
+
+function renderKB() {
+  const empty = document.getElementById("kb-empty");
+  const list = document.getElementById("kb-list");
+  if (knowledgeBase.length === 0) {
+    empty.classList.remove("hidden");
+    list.classList.add("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+  list.classList.remove("hidden");
+  list.innerHTML = knowledgeBase.map((e, i) => `
+    <div class="p-4 bg-surface-container rounded-xl border border-outline-variant/20">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <p class="text-sm font-bold text-on-surface">${e.topic}</p>
+          <p class="text-[10px] text-on-surface-variant mt-0.5">${e.timestamp} · ${e.mode} mode · ${e.confidence || "?"}% confidence</p>
+        </div>
+        <button onclick="loadFromKB(${i})" class="px-3 py-1 text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 rounded-full hover:bg-primary/20 transition-colors flex-shrink-0">Load</button>
+      </div>
+      ${e.concepts.length ? `<div class="flex flex-wrap gap-1 mt-2">${e.concepts.slice(0,3).map(c => `<span class="px-2 py-0.5 bg-surface-container-highest text-on-surface-variant text-[9px] rounded-full">${c}</span>`).join("")}</div>` : ""}
+    </div>
+  `).join("");
+}
+
+function loadFromKB(i) {
+  const e = knowledgeBase[i];
+  currentTopic = e.topic;
+  lastData = e.data;
+  document.getElementById("topic-input").value = e.topic;
+  setMode(e.mode);
+  renderAll(e.data);
+  closeModal("modal-knowledge");
+}
+
+function clearKB() {
+  knowledgeBase = [];
+  document.getElementById("kb-badge").classList.add("hidden");
+  document.getElementById("kb-count").textContent = "0";
+  renderKB();
+}
+
+// ══ Logs ══
+function addLog(msg) {
+  const ts = new Date().toLocaleTimeString();
+  sessionLogs.push({ ts, msg });
+
+  const badge = document.getElementById("logs-count-badge");
+  badge.textContent = sessionLogs.length;
+  badge.classList.remove("hidden");
+
+  const container = document.getElementById("logs-container");
+  const empty = document.getElementById("logs-empty");
+  empty.classList.add("hidden");
+  container.classList.remove("hidden");
+
+  const color = msg.startsWith("[ERROR]") ? "text-error" : msg.startsWith("[DONE]") ? "text-[#65fde6]" : msg.startsWith("[START]") ? "text-secondary" : "text-on-surface-variant";
+  const entry = document.createElement("div");
+  entry.className = `log-entry flex gap-2`;
+  entry.innerHTML = `<span class="text-on-surface-variant/40 flex-shrink-0">${ts}</span><span class="${color}">${msg}</span>`;
+  container.appendChild(entry);
+  container.scrollTop = container.scrollHeight;
+}
+
+function clearLogs() {
+  sessionLogs = [];
+  document.getElementById("logs-container").innerHTML = "";
+  document.getElementById("logs-container").classList.add("hidden");
+  document.getElementById("logs-empty").classList.remove("hidden");
+  document.getElementById("logs-count-badge").classList.add("hidden");
+}
+
+// ══ Export JSON ══
+function openExportModal() {
+  openModal("modal-json");
+  if (lastData) {
+    document.getElementById("json-empty").classList.add("hidden");
+    document.getElementById("json-content").classList.remove("hidden");
+    document.getElementById("json-preview").textContent = JSON.stringify(lastData, null, 2);
+  } else {
+    document.getElementById("json-empty").classList.remove("hidden");
+    document.getElementById("json-content").classList.add("hidden");
+  }
+}
+
+function downloadJSON() {
+  if (!lastData) return;
+  const blob = new Blob([JSON.stringify(lastData, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `neurostudy-${currentTopic.replace(/\s+/g,"-").toLowerCase()}-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function copyJSON() {
+  if (!lastData) return;
+  navigator.clipboard.writeText(JSON.stringify(lastData, null, 2));
+  const btn = event.currentTarget;
+  const orig = btn.innerHTML;
+  btn.innerHTML = `<span class="material-symbols-outlined text-sm">check</span> Copied!`;
+  setTimeout(() => btn.innerHTML = orig, 1500);
+}
+
+// Override the Export JSON button to use the modal
+document.addEventListener("DOMContentLoaded", () => {});
+
+// ══ Agent Badges ══
+function setAgentBadges(a1, a2, a3) {
+  const colors = {
+    "ACTIVE": "bg-primary/20 text-primary",
+    "RUNNING": "bg-secondary/20 text-secondary",
+    "DONE": "bg-[#65fde6]/10 text-[#65fde6]",
+    "WAITING": "bg-surface-container-highest text-on-surface-variant",
+    "ERROR": "bg-error/20 text-error",
+    "IDLE": "bg-surface-container-highest text-on-surface-variant",
+  };
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = val; el.className = `px-2 py-0.5 rounded-full text-[10px] font-bold ${colors[val] || colors["IDLE"]}`; }
+  };
+  set("agent1-badge", a1);
+  set("agent2-badge", a2);
+  set("agent3-badge", a3);
+
+  // Update sidebar live dot
+  const dot = document.getElementById("agents-live-dot");
+  if (dot) dot.className = `ml-auto w-1.5 h-1.5 rounded-full ${a1 === "ACTIVE" || a2 === "ACTIVE" ? "bg-primary animate-pulse" : "bg-on-surface-variant/20"}`;
+}
+
+// ══ UI helpers ══
+function setLoading(on) {
+  document.getElementById("loading-bar").classList.toggle("hidden", !on);
+  document.getElementById("gen-btn").disabled = on;
+  document.getElementById("loom-pulse").classList.toggle("hidden", !on);
+  document.getElementById("error-box").classList.add("hidden");
+}
+
+function setAgentStatus(text, active) {
+  document.getElementById("agent-status").textContent = text;
+  const dot = document.getElementById("live-dot");
+  const label = document.getElementById("live-label");
+  const dotR = document.getElementById("live-dot-right");
+  label.textContent = text.toUpperCase();
+  if (active) {
+    dot.className = "w-2 h-2 rounded-full bg-primary animate-pulse";
+    dotR.className = "w-2 h-2 rounded-full bg-primary animate-pulse";
+    label.className = "text-[10px] uppercase font-bold text-primary tracking-widest";
+  } else {
+    dot.className = "w-2 h-2 rounded-full bg-on-surface-variant/30";
+    dotR.className = "w-2 h-2 rounded-full bg-on-surface-variant/30";
+    label.className = "text-[10px] uppercase font-bold text-on-surface-variant/50 tracking-widest";
+  }
+}
+
+function setAgentLoad(pct) {
+  document.getElementById("agent-load-num").textContent = pct + "%";
+  document.getElementById("agent-load-bar").style.width = pct + "%";
+}
+
+function showError(msg) {
+  const b = document.getElementById("error-box");
+  b.textContent = msg; b.classList.remove("hidden");
+}
+
+function clearSteps() { document.getElementById("steps-list").innerHTML = ""; }
+
+function clearAll() {
+  document.getElementById("empty-state").classList.remove("hidden");
+  document.getElementById("notes-area").classList.add("hidden");
+  document.getElementById("notes-output").innerHTML = "";
+  document.getElementById("questions-block").classList.add("hidden");
+  document.getElementById("concepts-block").classList.add("hidden");
+  document.getElementById("topics-block").classList.add("hidden");
+  document.getElementById("sources-panel").classList.add("hidden");
+  document.getElementById("conf-circle").style.strokeDashoffset = "125.6";
+  document.getElementById("conf-num").textContent = "0%";
+  document.getElementById("conf-label").textContent = "—";
+  document.getElementById("source-links").innerHTML = '<span class="text-[10px] text-on-surface-variant/40">None yet</span>';
+}
+
+// Intercept Export JSON button to use modal
+window.addEventListener("load", () => {
+  // Wire up the Export JSON modal to update content when opened
+  document.querySelectorAll("[onclick='openModal(\\'modal-json\\')']").forEach(b => {
+    b.addEventListener("click", () => {
+      if (lastData) {
+        document.getElementById("json-empty").classList.add("hidden");
+        document.getElementById("json-content").classList.remove("hidden");
+        document.getElementById("json-preview").textContent = JSON.stringify(lastData, null, 2);
+      }
+    });
+  });
+});
+
+// Also update json modal content whenever it's opened
+const origOpenModal = openModal;
+
+// Patch footer Export JSON to pre-populate
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("[onclick*='modal-json']");
+  if (btn && lastData) {
+    setTimeout(() => {
+      document.getElementById("json-empty").classList.add("hidden");
+      document.getElementById("json-content").classList.remove("hidden");
+      document.getElementById("json-preview").textContent = JSON.stringify(lastData, null, 2);
+    }, 10);
+  }
+});
+
+// Shimmer animation
+const style = document.createElement("style");
+style.textContent = `@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`;
+document.head.appendChild(style);
+</script>
+</html>
